@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 
 import { DB_NAME } from "../constants.js";
 
+//try catch syntax
 
 
 const connectDB = async () => {
