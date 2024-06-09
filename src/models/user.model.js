@@ -57,6 +57,7 @@ const UserSchema =  new Schema({
  {
     timestamps:true ,
  }) 
+ 
  UserSchema.pre("save"  , async function(next) { //arrow function donot have this functionality 
     if(!this.isModified("password")) return next() ;
     this.password=  await bcrypt.hash(this.password, 10) //password encryption  //middlewade made 
@@ -70,38 +71,32 @@ next()
 
  }
 
- UserSchema.methods.Acesstokengenerator = async function () {
-   return  jwt.sign(
-        {
-            _id :this._id , //mongoode id 
-            email:this.email ,
-            username:this.username ,
-            fullname:this.fullname
-        } ,
-        process.env.ACCESS_TOKEN_SECERT,
-        {
-            expiresIn:process.env.ACCESS_TOKEN_EXPIRY 
-        }
-
-
-)
-
- }
- UserSchema.methods.Refreshtokengenerator = async function () {
-    return  jwt.sign(
-         {
-             _id :this._id , //mongoode id  they do  not have much payload 
-            
-         } ,
-         process.env.REFRESH_TOKEN_SECERT,
-         {
-             expiresIn:process.env.REFRESH_TOKEN_EXPIRY 
-         }
- 
- 
- )
- 
-  }
+ UserSchema.methods.generateAccessToken = function(){
+  return jwt.sign(
+      {
+          _id: this._id,
+          email: this.email,
+          username: this.username,
+          fullName: this.fullName
+      },
+      process.env.ACCESS_TOKEN_SECRET,
+      {
+          expiresIn: process.env.ACCESS_TOKEN_EXPIRY
+      }
+  )
+}
+UserSchema.methods.generateRefreshToken = function(){
+  return jwt.sign(
+      {
+          _id: this._id,
+          
+      },
+      process.env.REFRESH_TOKEN_SECRET,
+      {
+          expiresIn: process.env.REFRESH_TOKEN_EXPIRY
+      }
+  )
+}
 export const User  =  mongoose.model("USER" ,  UserSchema) ;
 
 

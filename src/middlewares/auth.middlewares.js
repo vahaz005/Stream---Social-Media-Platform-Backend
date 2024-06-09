@@ -1,8 +1,8 @@
 //it will check whether user is their or not 
 
-import { User } from "../models/user.model";
-import { ApiError } from "../utils/ApiError";
-import { AsyncHandler } from "../utils/AsyncHandler";
+import { User } from "../models/user.model.js";
+import { ApiError } from "../utils/ApiError.js";
+import { AsyncHandler } from "../utils/AsyncHandler.js";
 import jwt from "jsonwebtoken" ;
 
 export const  verifyJWT = AsyncHandler(async (req , res ,next) => {
@@ -23,6 +23,7 @@ export const  verifyJWT = AsyncHandler(async (req , res ,next) => {
   }
  
  req.user = user ;
+ console.log(req.user) ;
  next() ;
  
    } catch (error) {
