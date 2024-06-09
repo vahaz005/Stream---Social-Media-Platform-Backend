@@ -59,7 +59,7 @@ const UserSchema =  new Schema({
  }) 
  UserSchema.pre("save"  , async function(next) { //arrow function donot have this functionality 
     if(!this.isModified("password")) return next() ;
-    this.password=bcrypt.hash(this.password, 10) //password encryption  //middlewade made 
+    this.password=  await bcrypt.hash(this.password, 10) //password encryption  //middlewade made 
 next()
 
  }  )
