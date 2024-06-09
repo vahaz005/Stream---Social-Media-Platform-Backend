@@ -4,6 +4,9 @@ import {ApiError} from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js" 
 import { AsyncHandler } from "../utils/AsyncHandler.js"
 import jwt from "jsonwebtoken"
+import fs from "fs" ;
+import { get, syncIndexes } from "mongoose"
+import { emit } from "nodemon"
 //general method to make both 
 const generateAccessAndRefereshTokens = async(userId) =>{
     try {
@@ -187,6 +190,7 @@ const refreshAcessToken = AsyncHandler(async(req , res) => {
         if(!user){
             throw new ApiError(401, "invalid token") ;
         }
+        //refresh Token expiry check 
         if(incomingtoken !==user?.refreshToken ) {
             throw new ApiError(401 , "refreshtoken expired") ;
         }
@@ -218,6 +222,92 @@ const refreshAcessToken = AsyncHandler(async(req , res) => {
         throw new ApiError(401  , error.message || "refresh went wrong")
      }
 })
+const changePassword  = AsyncHandler(async(req , res)=> {
+    const {oldPassword , newPassword} = req.body ; 
+    
+
+    const userid = req.user._id ;
+
+    const  currentuser = await User.findById(userid) ;
+    const isPasswordCorrect = await currentuser.isPasswordCorrect(oldPassword) ;
+    if(!isPasswordCorrect){
+        throw new ApiError(400 , "invalid Password") ;
+    }
+    
+    currentuser.password = newPassword ;
+   await currentuser.save({validateBeforeSave:false}) ;
+   return res.status(200).json(new ApiResponse(200 ,  {}, "Password change succesfully" ))
 
 
-export {registerUser ,  loginUser , logOutUser , refreshAcessToken}
+    
+   
+    
+
+
+
+})
+const getCurrentUser = AsyncHandler(async(req ,res)=> {
+    return res.status(200).json(200 ,  req.user , "Current User Fetched") ;
+
+})
+const UpdateAccount =  AsyncHandler(async(req , res)=>{
+    
+    const currentUser = await User.findById(req.user?._id) ;
+    const  {fullname  , email , oldPassword} = req.body ;
+    if(!fullname && !email) {
+        throw new ApiError(400 ,  "field is required") ;
+    }
+
+    const isPasswordCorrect = await currentUser.isPasswordCorrect(oldPassword) ;
+    if(!isPasswordCorrect){
+        throw new ApiError(400 , "Password invalid") ;
+    }
+
+    currentUser.fullname  = fullname ;
+    currentUser.email = email ;
+
+   await currentUser.save({validateBeforeSave:false} ) ;
+   const sendUser = User.findById(currentUser._id).select("-password -refreshToken") ;
+   return res.status(200).json(200 , {user:sendUser , newemail:email  , newfullname:fullname}  , "Account Updated Successfully") ;
+
+
+
+    
+
+})
+const UpdateUserAvatar = AsyncHandler(async(req ,res)=>{
+    //old file unlink system 
+
+    const currentUser = await User.findById(req.user._id) ;
+    const oldfilePath = currentUser.avatar ;
+    
+    try {
+        fs.unlinkSync(oldfilePath) ;
+    } catch (error) {
+        throw new ApiError(400 , error?.message||"Error while deleting avatar") ;
+        
+    }
+
+    
+    const newavatarLocalFilePath = req.file?.avatar[0]?.path ;
+    if(!newavatarLocalFilePath){
+        throw new ApiError(400 , "avatar file is missing") ;
+    }   
+    const avatar = await uploadOnCloudinary(newavatarLocalFilePath) ;
+    if(!avatar.url){
+        throw new ApiError(400 , "error while uploading")  ;
+    }   
+
+    const user = await User.findByIdAndUpdate(req.user?.id ,  {avatar:avatar.url} ,  {new :true}) ;
+
+    return res.status(200).json(new ApiResponse(200 ,{user:user,newavatarurl:avatar.url} ,  "avatar changed successfully"))
+
+
+
+
+
+})
+//similarly coverImage can be updated 
+
+
+export {registerUser ,  loginUser , logOutUser , refreshAcessToken , changePassword , getCurrentUser , UpdateAccount , UpdateUserAvatar}
